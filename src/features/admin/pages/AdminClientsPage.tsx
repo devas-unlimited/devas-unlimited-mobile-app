@@ -11,10 +11,12 @@ import type { AdminClientRow } from '@/types/database'
 async function fetchClients(search: string): Promise<AdminClientRow[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q = (supabase.from('profiles') as any)
-    .select('id, full_name, avatar_url, role, created_at, updated_at')
+    .select('id, full_name, avatar_url, email, role, created_at, updated_at')
     .order('created_at', { ascending: false })
 
-  if (search) q = q.ilike('full_name', `%${search}%`)
+  // Strip characters that have meaning in PostgREST filter syntax
+  const term = search.trim().replace(/[,()%*]/g, '')
+  if (term) q = q.or(`full_name.ilike.%${term}%,email.ilike.%${term}%`)
 
   const { data, error } = await q
   if (error) throw error
@@ -29,6 +31,8 @@ export function AdminClientsPage() {
     queryKey: ['admin', 'clients', search],
     queryFn: () => fetchClients(search),
     staleTime: 0,
+    // New sign-ups appear without a manual refresh
+    refetchInterval: 30_000,
   })
 
   const clientCount = clients.filter(c => c.role === 'client').length
@@ -46,7 +50,7 @@ export function AdminClientsPage() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name…"
+          placeholder="Search by name or email…"
           className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#E8DDF2] text-sm bg-white text-[#321B26] placeholder-[#C4B5BD] focus:outline-none focus:ring-2 focus:ring-[#7C2447]/20"
         />
       </div>
@@ -78,16 +82,21 @@ export function AdminClientsPage() {
               </thead>
               <tbody className="divide-y divide-[#F7F0E9]">
                 {clients.map(c => {
-                  const initials = (c.full_name ?? '?')[0]?.toUpperCase()
+                  const initials = (c.full_name || c.email || '?')[0]?.toUpperCase()
                   return (
                     <tr key={c.id} className="hover:bg-[#FCF7F0] transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#7C2447] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                            {initials}
-                          </div>
-                          <div>
-                            <p className="font-medium text-[#321B26]">{c.full_name ?? '—'}</p>
+                          {c.avatar_url ? (
+                            <img src={c.avatar_url} alt="" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-[#7C2447] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                              {initials}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-medium text-[#321B26] truncate">{c.full_name || '—'}</p>
+                            {c.email && <p className="text-xs text-[#8C7B85] truncate">{c.email}</p>}
                           </div>
                         </div>
                       </td>

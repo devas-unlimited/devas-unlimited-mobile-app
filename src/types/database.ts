@@ -19,6 +19,7 @@ export interface Database {
           id: string
           full_name: string | null
           avatar_url: string | null
+          email: string | null
           role: 'client' | 'admin'
           created_at: string
           updated_at: string
@@ -27,6 +28,7 @@ export interface Database {
           id: string
           full_name?: string | null
           avatar_url?: string | null
+          email?: string | null
           role?: 'client' | 'admin'
           created_at?: string
           updated_at?: string
@@ -474,6 +476,6 @@ export type AdminClientRow = {
   role: 'client' | 'admin'
   created_at: string
   updated_at: string
-  email?: string
+  email: string | null
   last_sign_in_at?: string | null
 }
