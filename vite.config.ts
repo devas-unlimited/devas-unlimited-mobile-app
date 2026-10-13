@@ -13,8 +13,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icons/*.png'],
+      includeAssets: ['icons/*.png', 'icons/favicon.svg', 'brand/*.png'],
       manifest: {
+        id: '/',
         name: 'Devas Unlimited',
         short_name: 'Devas',
         description: 'A calmer space for sessions, practice & growth',
@@ -24,10 +25,16 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
+        categories: ['health', 'lifestyle'],
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        shortcuts: [
+          { name: 'Meditate', url: '/meditate', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Sanctuary', url: '/sanctuary', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Events', url: '/events', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
         ],
       },
       workbox: {

@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Megaphone, Users,
-  BookOpen, Settings, X, ChevronRight, Video,
+  BookOpen, Settings, X, ChevronRight, Video, GalleryHorizontal,
 } from 'lucide-react'
 
 const NAV = [
   { to: '/admin/overview',       icon: LayoutDashboard, label: 'Overview' },
+  { to: '/admin/banners',        icon: GalleryHorizontal, label: 'Home Banners' },
   { to: '/admin/events',         icon: Calendar,        label: 'Events & Retreats' },
   { to: '/admin/announcements',  icon: Megaphone,       label: 'Announcements' },
   { to: '/admin/sessions',       icon: Video,           label: 'Client Sessions' },

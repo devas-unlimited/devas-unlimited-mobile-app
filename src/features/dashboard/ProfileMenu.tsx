@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, LogOut, Settings } from 'lucide-react'
+import { LogOut, Settings, Gem, ExternalLink } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { getFirstName } from '@/lib/utils'
+import { LOVE_ROCKS } from '@/lib/brand'
 
 const APP_VERSION = '1.0.0'
 
@@ -64,14 +65,18 @@ export function ProfileMenu() {
               <Settings size={16} className="text-[#8C7B85]" />
               Account settings
             </button>
-            <button
+            <a
               role="menuitem"
-              onClick={() => { setOpen(false) }}
+              href={LOVE_ROCKS.url('profile_menu')}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#4A3540] hover:bg-[#FCF7F0] transition-colors"
             >
-              <User size={16} className="text-[#8C7B85]" />
-              View profile
-            </button>
+              <Gem size={16} className="text-[#E07A8B]" />
+              <span className="flex-1">Shop Love Rocks</span>
+              <ExternalLink size={13} className="text-[#C4B5BD]" />
+            </a>
           </div>
 
           {/* Sign out */}

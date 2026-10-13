@@ -14,8 +14,8 @@ async function fetchClientDetail(userId: string) {
     (supabase.from('profiles') as any).select('*').eq('id', userId).single(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('client_sessions') as any)
-      .select('id, title, starts_at, status, session_kind, duration_minutes')
-      .eq('is_private', false)
+      .select('id, title, starts_at, status, session_kind, duration_minutes, session_participants!inner(user_id)')
+      .eq('session_participants.user_id', userId)
       .order('starts_at', { ascending: false })
       .limit(10),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

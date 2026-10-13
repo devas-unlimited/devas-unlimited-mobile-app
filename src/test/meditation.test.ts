@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { calculateCurrentLevel, formatLevelRequirements } from '@/services/journey'
 
 // ─── Streak calculation ───────────────────────────────────────────────────────
 function calculateStreak(dates: string[]): number {
@@ -51,33 +52,14 @@ function weeklyTotal(sessions: { completed_at: string; duration_seconds: number 
 }
 
 // ─── Journey level calculation ────────────────────────────────────────────────
-interface Level { level: number; required_sessions: number; required_events: number; required_meditation_days: number; required_retreats: number }
-
-function calculateCurrentLevel(levels: Level[], stats: { completedSessions: number; attendedEvents: number; meditationDays: number; attendedRetreats: number }): number {
-  let current = 1
-  for (const level of levels) {
-    if (
-      stats.completedSessions >= level.required_sessions &&
-      stats.attendedEvents >= level.required_events &&
-      stats.meditationDays >= level.required_meditation_days &&
-      stats.attendedRetreats >= level.required_retreats
-    ) {
-      current = level.level
-    } else {
-      break
-    }
-  }
-  return current
-}
-
-const LEVELS: Level[] = [
+const LEVELS = [
   { level: 1, required_sessions: 0, required_events: 0, required_meditation_days: 0, required_retreats: 0 },
   { level: 2, required_sessions: 2, required_events: 1, required_meditation_days: 0, required_retreats: 0 },
-  { level: 3, required_sessions: 4, required_events: 0, required_meditation_days: 5, required_retreats: 0 },
-  { level: 4, required_sessions: 6, required_events: 2, required_meditation_days: 10, required_retreats: 0 },
-  { level: 5, required_sessions: 8, required_events: 3, required_meditation_days: 15, required_retreats: 0 },
-  { level: 6, required_sessions: 10, required_events: 1, required_meditation_days: 21, required_retreats: 1 },
-  { level: 7, required_sessions: 12, required_events: 4, required_meditation_days: 30, required_retreats: 0 },
+  { level: 3, required_sessions: 5, required_events: 0, required_meditation_days: 10, required_retreats: 0 },
+  { level: 4, required_sessions: 6, required_events: 3, required_meditation_days: 30, required_retreats: 0 },
+  { level: 5, required_sessions: 10, required_events: 6, required_meditation_days: 90, required_retreats: 1 },
+  { level: 6, required_sessions: 15, required_events: 6, required_meditation_days: 120, required_retreats: 3 },
+  { level: 7, required_sessions: 20, required_events: 10, required_meditation_days: 150, required_retreats: 5 },
 ]
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -144,17 +126,40 @@ describe('Journey level calculation', () => {
     expect(calculateCurrentLevel(LEVELS, { completedSessions: 2, attendedEvents: 1, meditationDays: 0, attendedRetreats: 0 })).toBe(2)
   })
 
+  it('reaches Practitioner with 5 sessions and 10 meditation days', () => {
+    expect(calculateCurrentLevel(LEVELS, { completedSessions: 5, attendedEvents: 1, meditationDays: 10, attendedRetreats: 0 })).toBe(3)
+  })
+
   it('reaches level 4 with full Steady Seeker requirements', () => {
-    expect(calculateCurrentLevel(LEVELS, { completedSessions: 6, attendedEvents: 2, meditationDays: 10, attendedRetreats: 0 })).toBe(4)
+    expect(calculateCurrentLevel(LEVELS, { completedSessions: 6, attendedEvents: 3, meditationDays: 30, attendedRetreats: 0 })).toBe(4)
   })
 
   it('does not skip levels', () => {
-    // Has level 5 sessions/events but not level 3 meditation days
-    expect(calculateCurrentLevel(LEVELS, { completedSessions: 8, attendedEvents: 3, meditationDays: 0, attendedRetreats: 0 })).toBe(2)
+    // Has Deepening sessions/events/retreats but not Practitioner meditation days
+    expect(calculateCurrentLevel(LEVELS, { completedSessions: 10, attendedEvents: 6, meditationDays: 0, attendedRetreats: 1 })).toBe(2)
   })
 
-  it('reaches level 7 with all requirements', () => {
-    // Level 6 requires 1 retreat, so retreats must be >= 1 to pass through it to level 7
-    expect(calculateCurrentLevel(LEVELS, { completedSessions: 12, attendedEvents: 4, meditationDays: 30, attendedRetreats: 1 })).toBe(7)
+  it('needs retreats to pass Deepening', () => {
+    expect(calculateCurrentLevel(LEVELS, { completedSessions: 10, attendedEvents: 6, meditationDays: 90, attendedRetreats: 0 })).toBe(4)
+  })
+
+  it('reaches Inner Core with all requirements', () => {
+    expect(calculateCurrentLevel(LEVELS, { completedSessions: 20, attendedEvents: 10, meditationDays: 150, attendedRetreats: 5 })).toBe(7)
+  })
+
+  it('is order-independent', () => {
+    expect(calculateCurrentLevel([...LEVELS].reverse(), { completedSessions: 2, attendedEvents: 1, meditationDays: 0, attendedRetreats: 0 })).toBe(2)
+  })
+})
+
+describe('Journey requirement text', () => {
+  it('formats with correct plurals', () => {
+    expect(formatLevelRequirements(LEVELS[1])).toBe('2 sessions • 1 event')
+    expect(formatLevelRequirements(LEVELS[4])).toBe('10 sessions • 6 events • 90 meditation days • 1 retreat')
+    expect(formatLevelRequirements(LEVELS[6])).toBe('20 sessions • 10 events • 150 meditation days • 5 retreats')
+  })
+
+  it('describes the first level', () => {
+    expect(formatLevelRequirements(LEVELS[0])).toBe('Create your account')
   })
 })

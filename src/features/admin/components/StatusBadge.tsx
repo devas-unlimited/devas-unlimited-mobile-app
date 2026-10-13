@@ -2,6 +2,8 @@ type Status = 'draft' | 'scheduled' | 'published' | 'archived' | 'cancelled' | '
 
 const STYLES: Record<string, { bg: string; text: string; dot: string }> = {
   published:   { bg: '#DDE9D3', text: '#2D6B4A', dot: '#2D6B4A' },
+  live:        { bg: '#DDE9D3', text: '#2D6B4A', dot: '#2D6B4A' },
+  hidden:      { bg: '#F7F0E9', text: '#8C7B85', dot: '#C4B5BD' },
   available:   { bg: '#DDE9D3', text: '#2D6B4A', dot: '#2D6B4A' },
   completed:   { bg: '#DDE9D3', text: '#2D6B4A', dot: '#2D6B4A' },
   draft:       { bg: '#F7F0E9', text: '#8C7B85', dot: '#C4B5BD' },

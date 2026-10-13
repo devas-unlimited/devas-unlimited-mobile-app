@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { X, BookOpen, Calendar, Sunrise } from 'lucide-react'
+import { X, BookOpen, Calendar, Sunrise, Mountain, RotateCcw } from 'lucide-react'
 import type { JourneyLevel } from '@/types/database'
+import { formatLevelRequirements } from '@/services/journey'
 
 interface JourneyLevelsPopupProps {
   levels: JourneyLevel[]
@@ -71,10 +72,11 @@ export function JourneyLevelsPopup({ levels, currentLevel, onClose }: JourneyLev
           </p>
 
           {/* Category indicators */}
-          <div className="flex gap-3 mb-5">
+          <div className="flex flex-wrap gap-2 mb-5">
             <CategoryPill icon={<BookOpen size={12} />} label="Sessions" bg="#F9E2D8" color="#7C2447" />
             <CategoryPill icon={<Calendar size={12} />} label="Events" bg="#DDE9D3" color="#2D6B4A" />
-            <CategoryPill icon={<Sunrise size={12} />} label="Meditation" bg="#E8DDF2" color="#5B3A7C" />
+            <CategoryPill icon={<Sunrise size={12} />} label="Meditation days" bg="#E8DDF2" color="#5B3A7C" />
+            <CategoryPill icon={<Mountain size={12} />} label="Retreats" bg="#FFF3D6" color="#8B6914" />
           </div>
 
           {/* Level list */}
@@ -110,6 +112,13 @@ export function JourneyLevelsPopup({ levels, currentLevel, onClose }: JourneyLev
               )
             })}
           </div>
+
+          <div className="mt-4 flex gap-3 rounded-[16px] p-4 bg-[#FFF3D6]">
+            <RotateCcw size={16} className="text-[#8B6914] flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-[#5C4A12] leading-relaxed">
+              Reach the final level and your journey is well done. You can then begin a new journey — the map restarts and only new activity counts toward it.
+            </p>
+          </div>
         </div>
 
         {/* Got it button */}
@@ -133,14 +142,4 @@ function CategoryPill({ icon, label, bg, color }: { icon: React.ReactNode; label
       {label}
     </div>
   )
-}
-
-function formatLevelRequirements(level: JourneyLevel): string {
-  if (level.level === 1) return 'Create your account'
-  const parts: string[] = []
-  if (level.required_sessions > 0) parts.push(`${level.required_sessions} sessions`)
-  if (level.required_events > 0) parts.push(`${level.required_events} event${level.required_events > 1 ? 's' : ''}`)
-  if (level.required_meditation_days > 0) parts.push(`${level.required_meditation_days} meditation days`)
-  if (level.required_retreats > 0) parts.push(`${level.required_retreats} retreat`)
-  return parts.join(' • ') || '—'
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Edit2, Archive, Search, RefreshCw } from 'lucide-react'
+import { Plus, Edit2, Archive, Trash2, Search, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { AdminShell } from '../layout/AdminShell'
@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/feedback/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { logAdminAction } from '../services/adminLog'
+import { deleteImages } from '@/services/storage'
 import type { Announcement } from '@/types/database'
 
 const PRIORITY_COLOR: Record<string, string> = {
@@ -41,6 +42,7 @@ export function AdminAnnouncementsPage() {
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [archiveTarget, setArchiveTarget] = useState<Announcement | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null)
 
   const { data: items = [], isLoading, error, refetch } = useQuery({
     queryKey: ['admin', 'announcements', filter, search],
@@ -81,6 +83,23 @@ export function AdminAnnouncementsPage() {
       queryClient.invalidateQueries({ queryKey: ['announcements'] })
     },
     onError: () => toast('Failed to publish', 'error'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (ann: Announcement) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('announcements') as any).delete().eq('id', ann.id)
+      if (error) throw error
+      await deleteImages(ann.cover_image_url)
+      await logAdminAction(user!.id, 'delete', 'announcement', ann.id, `Deleted announcement: ${ann.title}`)
+    },
+    onSuccess: () => {
+      toast('Announcement deleted', 'success')
+      queryClient.invalidateQueries({ queryKey: ['admin', 'announcements'] })
+      queryClient.invalidateQueries({ queryKey: ['announcements'] })
+      setDeleteTarget(null)
+    },
+    onError: () => toast('Failed to delete', 'error'),
   })
 
   return (
@@ -186,6 +205,13 @@ export function AdminAnnouncementsPage() {
                             <Archive size={13} />
                           </button>
                         )}
+                        <button
+                          onClick={() => setDeleteTarget(ann)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#F7F0E9] text-[#8C7B85] hover:bg-red-50 hover:text-red-500 transition-colors"
+                          aria-label="Delete"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -204,6 +230,17 @@ export function AdminAnnouncementsPage() {
         loading={archiveMutation.isPending}
         onConfirm={() => archiveTarget && archiveMutation.mutate(archiveTarget)}
         onCancel={() => setArchiveTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete this announcement?"
+        message={`"${deleteTarget?.title}" will be permanently deleted, along with any uploaded image. To keep it for later, archive it instead.`}
+        confirmLabel="Delete"
+        danger
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
       />
     </AdminShell>
   )

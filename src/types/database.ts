@@ -7,6 +7,8 @@ export type AnnouncementPriority = 'normal' | 'important' | 'urgent'
 export type AnnouncementType = 'general' | 'event_reminder' | 'retreat' | 'new_session' | 'new_recording' | 'schedule_change' | 'important_notice'
 export type MediaType = 'image' | 'video' | 'audio' | 'pdf' | 'external_video' | 'external_audio'
 export type AdminRole = 'client' | 'admin' | 'super_admin'
+export type BannerImageMode = 'cover' | 'side'
+export type BannerTheme = 'plum' | 'rose' | 'lavender' | 'gold' | 'cream'
 export type SessionType = '1on1' | 'group' | 'coaching' | 'meditation' | 'breathwork' | 'akashic' | 'counselling' | 'energy_healing' | 'other'
 
 export interface Database {
@@ -137,8 +139,6 @@ export interface Database {
           session_id: string
           user_id: string
           attendance_status: string
-          personal_reflection_note: string | null
-          practice_suggestion: string | null
           created_at: string
           updated_at: string
         }
@@ -146,8 +146,6 @@ export interface Database {
           session_id: string
           user_id: string
           attendance_status?: string
-          personal_reflection_note?: string | null
-          practice_suggestion?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -185,7 +183,11 @@ export interface Database {
           external_url: string
           thumbnail_url: string | null
           duration_minutes: number | null
+          track_count: number | null
           description: string | null
+          facilitator_name: string | null
+          tags: string[] | null
+          display_order: number
           is_featured: boolean
           is_published: boolean
           published_at: string | null
@@ -200,7 +202,11 @@ export interface Database {
           external_url: string
           thumbnail_url?: string | null
           duration_minutes?: number | null
+          track_count?: number | null
           description?: string | null
+          facilitator_name?: string | null
+          tags?: string[] | null
+          display_order?: number
           is_featured?: boolean
           is_published?: boolean
           published_at?: string | null
@@ -229,6 +235,58 @@ export interface Database {
           required_retreats?: number
         }
         Update: Partial<Database['public']['Tables']['journey_levels']['Insert']>
+      }
+      home_banners: {
+        Row: {
+          id: string
+          title: string
+          subtitle: string | null
+          eyebrow: string | null
+          image_url: string | null
+          image_mode: BannerImageMode
+          theme: BannerTheme
+          cta_label: string | null
+          link_url: string | null
+          display_order: number
+          is_active: boolean
+          starts_at: string | null
+          ends_at: string | null
+          created_by: string | null
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          subtitle?: string | null
+          eyebrow?: string | null
+          image_url?: string | null
+          image_mode?: BannerImageMode
+          theme?: BannerTheme
+          cta_label?: string | null
+          link_url?: string | null
+          display_order?: number
+          is_active?: boolean
+          starts_at?: string | null
+          ends_at?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['home_banners']['Insert']>
+      }
+      journey_completions: {
+        Row: {
+          id: string
+          user_id: string
+          completed_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          completed_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['journey_completions']['Insert']>
       }
       user_roles: {
         Row: {
@@ -398,6 +456,7 @@ export type UserRole = Database['public']['Tables']['user_roles']['Row']
 export type Announcement = Database['public']['Tables']['announcements']['Row']
 export type AnnouncementRead = Database['public']['Tables']['announcement_reads']['Row']
 export type MediaAsset = Database['public']['Tables']['media_assets']['Row']
+export type HomeBanner = Database['public']['Tables']['home_banners']['Row']
 export type AdminActivityLog = Database['public']['Tables']['admin_activity_log']['Row']
 
 export type SessionWithParticipant = ClientSession & {

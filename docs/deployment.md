@@ -26,7 +26,7 @@ In the Supabase SQL Editor (Dashboard → SQL Editor):
 ## 4. Create the Seed User (Madhavika)
 
 1. Go to Authentication → Users → Invite User
-2. Email: `madhavika@devasunlimited.com`
+2. Email: `contentbank.du@gmail.com`
 3. Copy the generated UUID
 4. In `supabase/seed.sql`, find the commented `do $$ ... $$` block
 5. Replace `REPLACE_WITH_USER_UUID` with the actual UUID

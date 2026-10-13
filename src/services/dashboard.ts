@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import type { Event } from '@/types/database'
 import { startOfDay, startOfWeek, endOfDay } from 'date-fns'
+import { fetchPublishedAnnouncements } from './events'
 
 export interface DashboardStats {
   minutesToday: number
@@ -91,32 +92,23 @@ export async function fetchNextEvent(): Promise<Event | null> {
 }
 
 export async function fetchActiveAnnouncements(userId: string) {
-  const now = new Date().toISOString()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase.from('announcements') as any)
-    .select('id, title, short_message, full_content, type, priority, is_featured, is_dismissible, cta_label, cta_url, published_at, expires_at')
-    .eq('status', 'published')
-    .lte('published_at', now)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .order('is_featured', { ascending: false })
-    .order('published_at', { ascending: false })
-    .limit(5)
+  const data = await fetchPublishedAnnouncements(5)
 
   // Filter out ones this user has already dismissed
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: reads } = await (supabase.from('announcement_reads') as any)
     .select('announcement_id')
     .eq('user_id', userId)
-    .eq('is_dismissed', true)
+    .not('dismissed_at', 'is', null)
 
-  const dismissedIds = new Set((reads ?? []).map((r: any) => r.announcement_id))
-  return ((data ?? []) as any[]).filter(a => !dismissedIds.has(a.id))
+  const dismissedIds = new Set(((reads ?? []) as { announcement_id: string }[]).map(r => r.announcement_id))
+  return data.filter(a => !dismissedIds.has(a.id))
 }
 
 export async function dismissAnnouncement(userId: string, announcementId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.from('announcement_reads') as any)
-    .upsert({ user_id: userId, announcement_id: announcementId, is_dismissed: true, dismissed_at: new Date().toISOString() })
+    .upsert({ user_id: userId, announcement_id: announcementId, dismissed_at: new Date().toISOString() })
 }
 
 export async function fetchWeeklyMeditationMinutes(userId: string): Promise<number> {

@@ -6,17 +6,10 @@ import { AppShell } from '@/components/layout/AppShell'
 import { useMeditationTimer } from '@/hooks/useMeditationTimer'
 import { useToast } from '@/components/feedback/Toast'
 import { formatDuration } from '@/lib/utils'
+import { getTodayIntention } from '@/lib/intentions'
 import { useQueryClient } from '@tanstack/react-query'
 
-const DURATIONS = [5, 10, 15, 20, 30]
-
-const INTENTIONS = [
-  'Stillness before reaction',
-  'Open and present',
-  'Grateful and grounded',
-  'Soft and curious',
-  'Peaceful within',
-]
+const DURATIONS = [5, 10, 15, 20, 30, 45, 60]
 
 export function MeditationPage() {
   const { user } = useAuth()
@@ -24,7 +17,7 @@ export function MeditationPage() {
   const queryClient = useQueryClient()
   const [selectedDuration, setSelectedDuration] = useState(10)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
-  const todayIntention = INTENTIONS[new Date().getDay() % INTENTIONS.length]
+  const todayIntention = getTodayIntention()
 
   const {
     status,
@@ -200,7 +193,7 @@ export function MeditationPage() {
       <div className="px-5 mb-4">
         <div className="bg-white rounded-[20px] p-4 shadow-[0_2px_16px_rgba(50,27,38,0.07)]">
           <p className="text-[10px] font-bold tracking-widest text-[#7C2447] uppercase mb-1">Today's intention</p>
-          <p className="text-[#321B26] font-medium text-sm">{todayIntention}</p>
+          <p className="text-[#321B26] font-medium text-sm leading-relaxed">{todayIntention}</p>
         </div>
       </div>
 

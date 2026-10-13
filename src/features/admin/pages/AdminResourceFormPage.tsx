@@ -1,17 +1,20 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Wand2, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { AdminShell } from '../layout/AdminShell'
 import { AdminInput, AdminSelect, AdminTextarea, AdminToggle } from '../components/AdminFormField'
 import { useToast } from '@/components/feedback/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { logAdminAction } from '../services/adminLog'
+import { fetchYouTubeDetails, youtubeId, resourceThumbnail } from '@/services/sanctuary'
 import type { Resource } from '@/types/database'
+
+const TOPIC_SUGGESTIONS = ['Satsang', 'Kirtan', 'Chants', 'Practice', 'Podcast', 'Meditation']
 
 const schema = z.object({
   title: z.string().min(2, 'Title required'),
@@ -20,8 +23,10 @@ const schema = z.object({
   external_url: z.string().url('Must be a valid URL'),
   thumbnail_url: z.string().default(''),
   duration_minutes: z.number().int().positive().nullable().default(null),
+  track_count: z.number().int().nonnegative().nullable().default(null),
   description: z.string().default(''),
   facilitator_name: z.string().default(''),
+  topic: z.string().trim().default(''),
   is_featured: z.boolean().default(false),
   is_published: z.boolean().default(false),
 })
@@ -50,10 +55,38 @@ export function AdminResourceFormPage() {
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { register, handleSubmit, control, reset, formState: { errors, isDirty } } = useForm<FormData>({
+  const { register, handleSubmit, control, reset, watch, setValue, getValues, formState: { errors, isDirty } } = useForm<FormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: { category: 'watch', is_featured: false, is_published: false },
   })
+  const [fetching, setFetching] = useState(false)
+  const url = watch('external_url') ?? ''
+  const thumbnail = watch('thumbnail_url') ?? ''
+  const videoId = youtubeId(url)
+  const preview = resourceThumbnail({ thumbnail_url: thumbnail || null, external_url: url })
+
+  // Fills any empty fields from YouTube; description & duration still come from the video page
+  async function fillFromYouTube() {
+    setFetching(true)
+    try {
+      const d = await fetchYouTubeDetails(url)
+      const opts = { shouldDirty: true, shouldValidate: true }
+      const fillIfEmpty = (field: 'title' | 'facilitator_name' | 'thumbnail_url', value: string) => {
+        if (!getValues(field)?.trim()) setValue(field, value, opts)
+      }
+      setValue('external_url', `https://www.youtube.com/watch?v=${videoId}`, opts)
+      setValue('provider', 'youtube', opts)
+      setValue('category', 'watch', opts)
+      fillIfEmpty('title', d.title)
+      fillIfEmpty('facilitator_name', d.author === 'DevasUnlimited' ? 'Devas Unlimited' : d.author)
+      fillIfEmpty('thumbnail_url', d.thumbnailUrl)
+      toast('Details filled from YouTube — add the description and duration', 'success')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not reach YouTube', 'error')
+    } finally {
+      setFetching(false)
+    }
+  }
 
   useEffect(() => {
     if (existing) {
@@ -64,8 +97,10 @@ export function AdminResourceFormPage() {
         external_url: existing.external_url,
         thumbnail_url: existing.thumbnail_url ?? '',
         duration_minutes: existing.duration_minutes ?? null,
+        track_count: existing.track_count ?? null,
         description: existing.description ?? '',
-        facilitator_name: (existing as any).facilitator_name ?? '',
+        facilitator_name: existing.facilitator_name ?? '',
+        topic: existing.tags?.[0] ?? '',
         is_featured: existing.is_featured,
         is_published: existing.is_published,
       })
@@ -73,10 +108,12 @@ export function AdminResourceFormPage() {
   }, [existing, reset])
 
   const saveMutation = useMutation({
-    mutationFn: async (data: FormData) => {
+    mutationFn: async ({ topic, ...data }: FormData) => {
       const payload = {
         ...data,
-        published_at: data.is_published ? new Date().toISOString() : null,
+        tags: topic ? [topic] : [],
+        // Keep the original date on edits so videos stay in release order
+        published_at: data.is_published ? (existing?.published_at ?? new Date().toISOString()) : null,
         updated_at: new Date().toISOString(),
         updated_by: user?.id,
         ...(isEdit ? {} : { created_by: user?.id }),
@@ -134,13 +171,55 @@ export function AdminResourceFormPage() {
                     ))}
                   </AdminSelect>
                 </div>
-                <AdminInput label="External URL" type="url" required placeholder="https://…" {...register('external_url')} error={errors.external_url?.message} />
-                <AdminTextarea label="Description" rows={3} {...register('description')} />
-                <div className="grid grid-cols-2 gap-4">
-                  <AdminInput label="Facilitator" {...register('facilitator_name')} />
-                  <AdminInput label="Duration (minutes)" type="number" {...register('duration_minutes', { valueAsNumber: true })} />
+                <div>
+                  <AdminInput
+                    label="External URL"
+                    type="url"
+                    required
+                    placeholder="https://youtu.be/… or https://soundcloud.com/…"
+                    hint={videoId ? 'Opens on YouTube, so plays count as channel views' : 'SoundCloud playlists (…/sets/…) open in-app with the full tracklist'}
+                    {...register('external_url')}
+                    error={errors.external_url?.message}
+                  />
+                  {videoId && (
+                    <button
+                      type="button"
+                      onClick={fillFromYouTube}
+                      disabled={fetching}
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FDECEA] text-[#C0392B] text-xs font-semibold hover:bg-[#fbdcd8] transition-colors disabled:opacity-60"
+                    >
+                      {fetching ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
+                      {fetching ? 'Fetching…' : 'Fill title, presenter & thumbnail from YouTube'}
+                    </button>
+                  )}
                 </div>
-                <AdminInput label="Thumbnail URL" type="url" placeholder="https://…" {...register('thumbnail_url')} />
+                <AdminTextarea
+                  label="Description"
+                  rows={videoId ? 6 : 3}
+                  hint={videoId ? 'Paste from YouTube — the app shows a preview with “Read more”' : undefined}
+                  {...register('description')}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <AdminInput label="Facilitator / presenter" {...register('facilitator_name')} />
+                  <AdminInput label="Topic" placeholder="e.g. Satsang" list="resource-topics" hint="Shown as a label & filter" {...register('topic')} />
+                  <datalist id="resource-topics">
+                    {TOPIC_SUGGESTIONS.map(t => <option key={t} value={t} />)}
+                  </datalist>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <AdminInput label="Duration (minutes)" type="number" {...register('duration_minutes', { setValueAs: v => (v === '' || v == null ? null : Number(v)) })} />
+                  <AdminInput label="Tracks (playlists)" type="number" min={0} {...register('track_count', { setValueAs: v => (v === '' || v == null ? null : Number(v)) })} />
+                </div>
+                <AdminInput
+                  label="Thumbnail URL"
+                  type="url"
+                  placeholder="https://…"
+                  hint={videoId ? 'Leave empty to use the YouTube thumbnail' : undefined}
+                  {...register('thumbnail_url')}
+                />
+                {preview && (
+                  <img src={preview} alt="Thumbnail preview" className={`rounded-xl object-cover border border-[#F0E6EC] ${videoId ? 'w-full max-w-sm aspect-video' : 'w-32 h-32'}`} />
+                )}
               </Card>
             </div>
             <div className="space-y-5">

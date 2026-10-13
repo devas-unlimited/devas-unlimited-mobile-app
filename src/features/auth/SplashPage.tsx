@@ -49,18 +49,27 @@ export function SplashPage() {
           Awaken. Align. Elevate.
         </p>
 
-        {/* CTA */}
-        <button
-          onClick={handleBegin}
-          className="w-full py-4 px-8 bg-[#7C2447] text-white rounded-full text-base font-semibold tracking-wide shadow-lg active:scale-[0.98] transition-transform duration-150"
-        >
-          {loading ? 'Loading…' : 'Begin your journey'}
-        </button>
+        {/* Signed-in users only see the brand briefly on launch, then go straight in */}
+        {loading || session ? (
+          <div className="h-[86px] flex items-start justify-center" aria-label="Opening your space">
+            <div className="w-8 h-8 rounded-full border-2 border-[#7C2447] border-t-transparent animate-spin" />
+          </div>
+        ) : (
+          <>
+            {/* CTA */}
+            <button
+              onClick={handleBegin}
+              className="w-full py-4 px-8 bg-[#7C2447] text-white rounded-full text-base font-semibold tracking-wide shadow-lg active:scale-[0.98] transition-transform duration-150"
+            >
+              Begin your journey
+            </button>
 
-        {/* Supporting text */}
-        <p className="mt-4 text-[#8C7B85] text-xs leading-relaxed">
-          A calmer space for sessions, practice &amp; growth
-        </p>
+            {/* Supporting text */}
+            <p className="mt-4 text-[#8C7B85] text-xs leading-relaxed">
+              A calmer space for sessions, practice &amp; growth
+            </p>
+          </>
+        )}
       </div>
     </div>
   )

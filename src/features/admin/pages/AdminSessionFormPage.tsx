@@ -59,7 +59,7 @@ export function AdminSessionFormPage() {
   const { toast } = useToast()
   const { user } = useAuth()
 
-  const [selectedClients, setSelectedClients] = useState<{ id: string; name: string; note: string; suggestion: string }[]>([])
+  const [selectedClients, setSelectedClients] = useState<{ id: string; name: string }[]>([])
   const [clientSearch, setClientSearch] = useState('')
 
   const { data: existing, isLoading } = useQuery({
@@ -99,8 +99,6 @@ export function AdminSessionFormPage() {
         (existing.session_participants ?? []).map(sp => ({
           id: sp.user_id,
           name: sp.profiles?.full_name ?? sp.user_id,
-          note: sp.personal_reflection_note ?? '',
-          suggestion: sp.practice_suggestion ?? '',
         }))
       )
     }
@@ -137,8 +135,6 @@ export function AdminSessionFormPage() {
           session_id: sessionId,
           user_id: c.id,
           attendance_status: 'attended',
-          personal_reflection_note: c.note || null,
-          practice_suggestion: c.suggestion || null,
         }))
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: pErr } = await (supabase.from('session_participants') as any).insert(participants)
@@ -162,15 +158,11 @@ export function AdminSessionFormPage() {
   )
 
   const addClient = (client: Profile) => {
-    setSelectedClients(prev => [...prev, { id: client.id, name: client.full_name ?? client.id, note: '', suggestion: '' }])
+    setSelectedClients(prev => [...prev, { id: client.id, name: client.full_name ?? client.id }])
     setClientSearch('')
   }
 
   const removeClient = (clientId: string) => setSelectedClients(prev => prev.filter(c => c.id !== clientId))
-
-  const updateClientField = (clientId: string, field: 'note' | 'suggestion', value: string) => {
-    setSelectedClients(prev => prev.map(c => c.id === clientId ? { ...c, [field]: value } : c))
-  }
 
   return (
     <AdminShell>
@@ -258,23 +250,11 @@ export function AdminSessionFormPage() {
                 {selectedClients.length > 0 && (
                   <div className="space-y-3 mt-2">
                     {selectedClients.map(c => (
-                      <div key={c.id} className="bg-[#FCF7F0] rounded-xl p-4 space-y-2">
+                      <div key={c.id} className="bg-[#FCF7F0] rounded-xl p-4">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-semibold text-[#321B26]">{c.name}</p>
                           <button type="button" onClick={() => removeClient(c.id)} className="text-[#C4B5BD] hover:text-[#7C2447]"><X size={14} /></button>
                         </div>
-                        <input
-                          placeholder="Reflection note for this client…"
-                          value={c.note}
-                          onChange={e => updateClientField(c.id, 'note', e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg border border-[#E8DDF2] text-xs text-[#321B26] bg-white placeholder-[#C4B5BD] focus:outline-none focus:ring-1 focus:ring-[#7C2447]/20"
-                        />
-                        <input
-                          placeholder="Practice suggestion…"
-                          value={c.suggestion}
-                          onChange={e => updateClientField(c.id, 'suggestion', e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg border border-[#E8DDF2] text-xs text-[#321B26] bg-white placeholder-[#C4B5BD] focus:outline-none focus:ring-1 focus:ring-[#7C2447]/20"
-                        />
                       </div>
                     ))}
                   </div>

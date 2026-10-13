@@ -11,6 +11,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   overview: 'Overview',
   events: 'Events & Retreats',
   announcements: 'Announcements',
+  banners: 'Home Banners',
   sessions: 'Client Sessions',
   resources: 'Sanctuary Resources',
   clients: 'Clients',

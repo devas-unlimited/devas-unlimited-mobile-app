@@ -11,12 +11,16 @@ import { AdminInput, AdminSelect, AdminTextarea, AdminToggle } from '../componen
 import { useToast } from '@/components/feedback/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { logAdminAction } from '../services/adminLog'
+import { EVENT_CATEGORIES, EVENT_FORMATS } from '@/services/events'
+import { ImageUploadField } from '../components/ImageUploadField'
+import { useStagedUploads } from '../hooks/useStagedUploads'
+import { deleteImages } from '@/services/storage'
 
 const schema = z.object({
   title: z.string().min(2, 'Title is required'),
   slug: z.string().min(2, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug: lowercase letters, numbers and hyphens only'),
-  category: z.string().min(1, 'Category is required'),
-  format: z.string().min(1, 'Format is required'),
+  category: z.enum(EVENT_CATEGORIES, { message: 'Type is required' }),
+  format: z.enum(EVENT_FORMATS, { message: 'Format is required' }),
   status: z.enum(['draft', 'scheduled', 'published', 'archived', 'cancelled']),
   starts_at: z.string().min(1, 'Start date is required'),
   ends_at: z.string().default(''),
@@ -49,9 +53,6 @@ function slugify(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-const CATEGORIES = ['Music', 'Live', 'Retreat', 'Session', 'Workshop', 'Satsang', 'Meditation', 'Other']
-const FORMATS = ['Event', 'Live', 'Retreat', 'Workshop', 'Online', 'Hybrid']
-
 export function AdminEventFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id && id !== 'new')
@@ -59,6 +60,7 @@ export function AdminEventFormPage() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useAuth()
+  const staged = useStagedUploads()
 
   const { data: existing, isLoading: loadingExisting } = useQuery({
     queryKey: ['admin', 'event', id],
@@ -70,6 +72,8 @@ export function AdminEventFormPage() {
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isDirty } } = useForm<FormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
+      category: 'Event',
+      format: 'In-person',
       status: 'draft',
       currency: 'INR',
       is_featured: false,
@@ -83,8 +87,8 @@ export function AdminEventFormPage() {
       reset({
         title: (existing.title as string) ?? '',
         slug: (existing.slug as string) ?? '',
-        category: (existing.category as string) ?? '',
-        format: (existing.format as string) ?? '',
+        category: (existing.category as FormData['category']) ?? 'Event',
+        format: (existing.format as FormData['format']) ?? 'In-person',
         status: (existing.status as FormData['status']) ?? 'draft',
         starts_at: existing.starts_at ? (existing.starts_at as string).slice(0, 16) : '',
         ends_at: existing.ends_at ? (existing.ends_at as string).slice(0, 16) : '',
@@ -117,6 +121,7 @@ export function AdminEventFormPage() {
         ...data,
         starts_at: new Date(data.starts_at).toISOString(),
         ends_at: data.ends_at ? new Date(data.ends_at).toISOString() : null,
+        cover_image_url: data.cover_image_url || null,
         is_published: data.status === 'published',
         published_at: data.status === 'published' ? new Date().toISOString() : null,
         updated_by: user?.id,
@@ -127,6 +132,8 @@ export function AdminEventFormPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase.from('events') as any).update(payload).eq('id', id)
         if (error) throw error
+        const previousCover = (existing?.cover_image_url as string | null) ?? null
+        if (previousCover !== payload.cover_image_url) await deleteImages(previousCover)
         await logAdminAction(user!.id, 'update', 'event', id!, `Updated event: ${data.title}`)
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,6 +141,7 @@ export function AdminEventFormPage() {
         if (error) throw error
         await logAdminAction(user!.id, 'create', 'event', null, `Created event: ${data.title}`)
       }
+      staged.commit(payload.cover_image_url)
     },
     onSuccess: () => {
       toast(isEdit ? 'Event updated' : 'Event created', 'success')
@@ -175,15 +183,13 @@ export function AdminEventFormPage() {
                 <AdminInput label="Title" required {...register('title')} error={errors.title?.message} />
                 <div className="grid grid-cols-2 gap-4">
                   <AdminInput label="Slug" required {...register('slug')} error={errors.slug?.message} hint="auto-generated" />
-                  <AdminSelect label="Category" required {...register('category')} error={errors.category?.message}>
-                    <option value="">Select…</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  <AdminSelect label="Type" required {...register('category')} error={errors.category?.message} hint="app tab">
+                    {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </AdminSelect>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <AdminSelect label="Format" required {...register('format')} error={errors.format?.message}>
-                    <option value="">Select…</option>
-                    {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+                    {EVENT_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
                   </AdminSelect>
                   <AdminInput label="Facilitator" {...register('facilitator_name')} error={errors.facilitator_name?.message} />
                 </div>
@@ -220,7 +226,17 @@ export function AdminEventFormPage() {
               </Section>
 
               <Section title="Media">
-                <AdminInput label="Cover image URL" type="url" placeholder="https://…" {...register('cover_image_url')} error={errors.cover_image_url?.message} />
+                <Controller name="cover_image_url" control={control} render={({ field }) => (
+                  <ImageUploadField
+                    label="Cover image"
+                    hint="1200 × 600 recommended • used in Home highlights"
+                    folder="events"
+                    staged={staged}
+                    value={field.value ?? ''}
+                    onChange={url => field.onChange(url)}
+                    error={errors.cover_image_url?.message}
+                  />
+                )} />
               </Section>
             </div>
 
@@ -239,8 +255,8 @@ export function AdminEventFormPage() {
                   control={control}
                   render={({ field }) => (
                     <AdminToggle
-                      label="Featured on dashboard"
-                      description="Shows as the hero card"
+                      label="Featured on Home"
+                      description="Shown as a banner in Home highlights (uses the cover image)"
                       checked={field.value}
                       onChange={field.onChange}
                     />

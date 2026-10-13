@@ -25,6 +25,21 @@ export async function fetchUserSessions(userId: string, kind?: string): Promise<
   return (data ?? []) as SessionWithParticipant[]
 }
 
+/** The user's next scheduled session, if any */
+export async function fetchNextSession(userId: string): Promise<SessionWithParticipant | null> {
+  const { data, error } = await supabase
+    .from('client_sessions')
+    .select('*, session_participants!inner(*)')
+    .eq('session_participants.user_id', userId)
+    .eq('status', 'scheduled')
+    .gte('starts_at', new Date().toISOString())
+    .order('starts_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data as SessionWithParticipant | null
+}
+
 export async function fetchSessionById(sessionId: string, userId: string): Promise<SessionWithParticipant | null> {
   const { data, error } = await supabase
     .from('client_sessions')

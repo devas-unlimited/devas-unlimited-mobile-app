@@ -55,6 +55,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   overscroll-behavior: none;
+  overflow-x: hidden;
 }
 
 #root {

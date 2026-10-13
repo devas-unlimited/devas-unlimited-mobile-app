@@ -11,6 +11,9 @@ import { AdminInput, AdminSelect, AdminTextarea, AdminToggle } from '../componen
 import { useToast } from '@/components/feedback/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { logAdminAction } from '../services/adminLog'
+import { ImageUploadField } from '../components/ImageUploadField'
+import { useStagedUploads } from '../hooks/useStagedUploads'
+import { deleteImages } from '@/services/storage'
 import type { Announcement } from '@/types/database'
 
 const schema = z.object({
@@ -24,6 +27,7 @@ const schema = z.object({
   is_dismissible: z.boolean().default(true),
   cta_label: z.string().default(''),
   cta_url: z.string().default(''),
+  cover_image_url: z.string().default(''),
   published_at: z.string().default(''),
   expires_at: z.string().default(''),
 })
@@ -44,6 +48,7 @@ export function AdminAnnouncementFormPage() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useAuth()
+  const staged = useStagedUploads()
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ['admin', 'announcement', id],
@@ -70,6 +75,7 @@ export function AdminAnnouncementFormPage() {
         is_dismissible: existing.is_dismissible,
         cta_label: existing.cta_label ?? '',
         cta_url: existing.cta_url ?? '',
+        cover_image_url: existing.cover_image_url ?? '',
         published_at: existing.published_at ? existing.published_at.slice(0, 16) : '',
         expires_at: existing.expires_at ? existing.expires_at.slice(0, 16) : '',
       })
@@ -85,6 +91,7 @@ export function AdminAnnouncementFormPage() {
           ? (data.published_at ? new Date(data.published_at).toISOString() : now)
           : (data.published_at ? new Date(data.published_at).toISOString() : null),
         expires_at: data.expires_at ? new Date(data.expires_at).toISOString() : null,
+        cover_image_url: data.cover_image_url || null,
         updated_at: now,
         updated_by: user?.id,
         ...(isEdit ? {} : { created_by: user?.id }),
@@ -94,6 +101,7 @@ export function AdminAnnouncementFormPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase.from('announcements') as any).update(payload).eq('id', id)
         if (error) throw error
+        if ((existing?.cover_image_url ?? null) !== payload.cover_image_url) await deleteImages(existing?.cover_image_url)
         await logAdminAction(user!.id, 'update', 'announcement', id!, `Updated: ${data.title}`)
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,6 +109,7 @@ export function AdminAnnouncementFormPage() {
         if (error) throw error
         await logAdminAction(user!.id, 'create', 'announcement', null, `Created announcement: ${data.title}`)
       }
+      staged.commit(payload.cover_image_url)
     },
     onSuccess: () => {
       toast(isEdit ? 'Announcement updated' : 'Announcement created', 'success')
@@ -135,6 +144,18 @@ export function AdminAnnouncementFormPage() {
                 <AdminTextarea label="Short message" required rows={2} {...register('short_message')} error={errors.short_message?.message} hint="Shown as preview in dashboard" />
                 <AdminTextarea label="Full content" rows={6} {...register('full_content')} hint="Shown when user taps the announcement" />
               </Card>
+              <Card title="Banner">
+                <Controller name="cover_image_url" control={control} render={({ field }) => (
+                  <ImageUploadField
+                    label="Banner image"
+                    hint="1200 × 600 • shown in Home highlights when Featured"
+                    folder="announcements"
+                    staged={staged}
+                    value={field.value ?? ''}
+                    onChange={url => field.onChange(url)}
+                  />
+                )} />
+              </Card>
               <Card title="Call to action">
                 <div className="grid grid-cols-2 gap-4">
                   <AdminInput label="Button label" placeholder="Learn more" {...register('cta_label')} />
@@ -168,7 +189,7 @@ export function AdminAnnouncementFormPage() {
                 <AdminInput label="Publish at" type="datetime-local" {...register('published_at')} hint="Leave blank = now" />
                 <AdminInput label="Expires at" type="datetime-local" {...register('expires_at')} hint="Leave blank = never" />
                 <Controller name="is_featured" control={control} render={({ field }) => (
-                  <AdminToggle label="Featured" description="Show prominently on dashboard" checked={field.value} onChange={field.onChange} />
+                  <AdminToggle label="Featured" description="Shown as a banner in Home highlights" checked={field.value} onChange={field.onChange} />
                 )} />
                 <Controller name="is_dismissible" control={control} render={({ field }) => (
                   <AdminToggle label="Dismissible" description="Clients can hide it" checked={field.value} onChange={field.onChange} />

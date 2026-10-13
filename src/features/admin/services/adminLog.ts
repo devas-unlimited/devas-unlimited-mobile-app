@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { notifyContentChanged } from '@/services/realtime'
 
 export async function logAdminAction(
   adminUserId: string,
@@ -19,6 +20,8 @@ export async function logAdminAction(
   } catch {
     // Activity log failures must never break the main operation
   }
+  // Tell every open client app to refetch this content
+  notifyContentChanged(entityType)
 }
 
 export async function fetchRecentActivity(limit = 20) {

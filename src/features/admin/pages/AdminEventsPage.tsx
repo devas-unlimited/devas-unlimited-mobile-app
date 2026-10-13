@@ -19,14 +19,20 @@ type EventRow = {
 }
 
 const STATUS_FILTERS = ['all', 'draft', 'published', 'scheduled', 'archived', 'cancelled']
+const TYPE_FILTERS = [
+  { id: 'all', label: 'All types' },
+  { id: 'Event', label: 'Events' },
+  { id: 'Retreat', label: 'Retreats' },
+]
 
-async function fetchAdminEvents(filter: string, search: string): Promise<EventRow[]> {
+async function fetchAdminEvents(filter: string, type: string, search: string): Promise<EventRow[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q = (supabase.from('events') as any)
     .select('id, title, category, format, starts_at, city, status, is_featured, is_published, created_at')
     .order('starts_at', { ascending: false })
 
   if (filter !== 'all') q = q.eq('status', filter)
+  if (type !== 'all') q = q.eq('category', type)
   if (search) q = q.ilike('title', `%${search}%`)
 
   const { data, error } = await q
@@ -40,12 +46,13 @@ export function AdminEventsPage() {
   const { toast } = useToast()
   const { user } = useAuth()
   const [filter, setFilter] = useState('all')
+  const [type, setType] = useState('all')
   const [search, setSearch] = useState('')
   const [archiveTarget, setArchiveTarget] = useState<EventRow | null>(null)
 
   const { data: events = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['admin', 'events', filter, search],
-    queryFn: () => fetchAdminEvents(filter, search),
+    queryKey: ['admin', 'events', filter, type, search],
+    queryFn: () => fetchAdminEvents(filter, type, search),
     staleTime: 0,
   })
 
@@ -97,6 +104,19 @@ export function AdminEventsPage() {
         </button>
       </div>
 
+      {/* Type tabs — mirror the client Events tab */}
+      <div className="flex gap-1 p-1 bg-white border border-[#E8DDF2] rounded-xl w-fit mb-4">
+        {TYPE_FILTERS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setType(t.id)}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${type === t.id ? 'bg-[#7C2447] text-white' : 'text-[#8C7B85] hover:text-[#7C2447]'}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="relative flex-1 max-w-xs">
@@ -146,7 +166,7 @@ export function AdminEventsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#F0E6EC] text-left">
-                  {['Title', 'Category', 'Date', 'Location', 'Status', 'Featured', 'Actions'].map(h => (
+                  {['Title', 'Type', 'Date', 'Location', 'Status', 'Featured', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-xs font-semibold text-[#8C7B85] uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -158,7 +178,11 @@ export function AdminEventsPage() {
                       <p className="font-medium text-[#321B26] truncate max-w-[200px]">{ev.title}</p>
                       <p className="text-xs text-[#8C7B85]">{ev.format}</p>
                     </td>
-                    <td className="px-4 py-3 text-[#4A3540] whitespace-nowrap">{ev.category}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${ev.category === 'Retreat' ? 'bg-[#E8DDF2] text-[#5B3A7C]' : 'bg-[#F9E2D8] text-[#7C2447]'}`}>
+                        {ev.category}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-[#4A3540] whitespace-nowrap">{format(new Date(ev.starts_at), 'dd MMM yy')}</td>
                     <td className="px-4 py-3 text-[#4A3540] whitespace-nowrap">{ev.city ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={ev.status} size="sm" /></td>

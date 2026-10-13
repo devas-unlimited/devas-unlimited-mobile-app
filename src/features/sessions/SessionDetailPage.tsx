@@ -19,8 +19,6 @@ export function SessionDetailPage() {
     enabled: Boolean(id && user?.id),
   })
 
-  const participant = session?.session_participants?.[0]
-
   return (
     <AppShell>
       {/* Header */}
@@ -109,27 +107,6 @@ export function SessionDetailPage() {
             )}
           </div>
 
-          {/* Reflection Notes */}
-          {(participant?.personal_reflection_note || participant?.practice_suggestion) && (
-            <div className="bg-white rounded-[20px] p-4 shadow-[0_2px_16px_rgba(50,27,38,0.07)]">
-              <h3 className="font-semibold text-[#321B26] text-sm mb-3">Reflection notes</h3>
-
-              {participant.personal_reflection_note && (
-                <div className="bg-[#F7F0E9] rounded-xl p-3 mb-3">
-                  <p className="text-sm text-[#4A3540] leading-relaxed italic">
-                    "{participant.personal_reflection_note}"
-                  </p>
-                </div>
-              )}
-
-              {participant.practice_suggestion && (
-                <div className="flex items-start gap-2">
-                  <span className="text-[#7C2447] text-xs font-semibold mt-0.5">Practice:</span>
-                  <p className="text-sm text-[#8C7B85] leading-relaxed">{participant.practice_suggestion}</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
     </AppShell>
