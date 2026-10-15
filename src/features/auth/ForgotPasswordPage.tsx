@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { OrgBlobs } from '@/components/ui/OrgBlobs'
-import { DevasSymbol } from '@/components/ui/DevasSymbol'
 
 const schema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -68,7 +67,7 @@ export function ForgotPasswordPage() {
         <Link to="/login" aria-label="Back to login" className="text-[#7C2447]">
           <ArrowLeft size={22} />
         </Link>
-        <DevasSymbol size={40} color="#7C2447" />
+        <img src="/brand/devas-logo.png" alt="Devas Unlimited" className="w-32" />
         <div className="w-6" />
       </div>
       <div className="relative z-10 flex-1 bg-white rounded-t-[32px] px-6 pt-8 pb-10 shadow-lg">

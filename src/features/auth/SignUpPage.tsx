@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { OrgBlobs } from '@/components/ui/OrgBlobs'
-import { DevasSymbol } from '@/components/ui/DevasSymbol'
 
 const signUpSchema = z.object({
   full_name: z.string().min(2, 'Please enter your full name'),
@@ -74,7 +73,7 @@ export function SignUpPage() {
     <div className="relative flex flex-col min-h-screen bg-[#FCF7F0] overflow-hidden">
       <OrgBlobs variant="auth" />
       <div className="relative z-10 flex items-center justify-center pt-14 pb-8">
-        <DevasSymbol size={48} color="#7C2447" />
+        <img src="/brand/devas-logo.png" alt="Devas Unlimited" className="w-36" />
       </div>
       <div className="relative z-10 flex-1 bg-white rounded-t-[32px] px-6 pt-8 pb-10 shadow-lg">
         <h1 className="text-2xl font-bold text-[#321B26] mb-1">Create your account</h1>

@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { OrgBlobs } from '@/components/ui/OrgBlobs'
-import { DevasSymbol } from '@/components/ui/DevasSymbol'
 import { useToast } from '@/components/feedback/Toast'
 
 const loginSchema = z.object({
@@ -71,7 +70,7 @@ export function LoginPage() {
 
       {/* Header */}
       <div className="relative z-10 flex items-center justify-center pt-14 pb-8">
-        <DevasSymbol size={48} color="#7C2447" />
+        <img src="/brand/devas-logo.png" alt="Devas Unlimited" className="w-36" />
       </div>
 
       {/* Card */}

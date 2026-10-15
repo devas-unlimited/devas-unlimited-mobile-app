@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
 import { OrgBlobs } from '@/components/ui/OrgBlobs'
-import { DevasSymbol } from '@/components/ui/DevasSymbol'
 
 export function SplashPage() {
   const { session, loading } = useAuth()
@@ -29,23 +28,15 @@ export function SplashPage() {
       <OrgBlobs variant="splash" />
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-xs mx-auto">
-        {/* Symbol */}
-        <div className="mb-8">
-          <DevasSymbol size={96} color="#7C2447" />
-        </div>
-
-        {/* Wordmark */}
-        <div className="mb-2">
-          <h1 className="text-[28px] font-bold tracking-[0.2em] text-[#321B26] uppercase leading-tight">
-            Devas
-          </h1>
-          <p className="text-[11px] font-semibold tracking-[0.35em] text-[#7C2447] uppercase">
-            Unlimited
-          </p>
-        </div>
+        {/* Official logo */}
+        <img
+          src="/brand/devas-logo.png"
+          alt="Devas Unlimited"
+          className="w-56 mb-10"
+        />
 
         {/* Tagline */}
-        <p className="mt-6 mb-12 text-[#8C7B85] text-sm font-medium tracking-wide">
+        <p className="mb-12 text-[#8C7B85] text-sm font-medium tracking-wide">
           Awaken. Align. Elevate.
         </p>
 
