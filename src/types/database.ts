@@ -51,13 +51,29 @@ export interface Database {
           description: string | null
           city: string | null
           venue: string | null
+          address: string | null
+          map_url: string | null
+          meeting_url: string | null
+          facilitator_name: string | null
+          facilitator_bio: string | null
           starts_at: string
           ends_at: string | null
           all_day: boolean
           registration_url: string | null
+          registration_open: boolean
           cover_image_url: string | null
+          status: string
+          published_at: string | null
+          expires_at: string | null
+          display_order: number
+          price: number | null
+          currency: string | null
+          capacity: number | null
           is_featured: boolean
           is_published: boolean
+          created_by: string | null
+          updated_by: string | null
+          archived_at: string | null
           created_at: string
           updated_at: string
         }

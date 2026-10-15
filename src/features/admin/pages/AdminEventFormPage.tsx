@@ -93,9 +93,10 @@ export function AdminEventFormPage() {
         format: (existing.format as FormData['format']) ?? 'In-person',
         status: (existing.status as FormData['status']) ?? 'draft',
         start_date: existing.starts_at ? format(new Date(existing.starts_at as string), 'yyyy-MM-dd') : '',
-        start_time: existing.starts_at && !existing.all_day ? format(new Date(existing.starts_at as string), 'HH:mm') : '',
+        start_time: existing.starts_at && !existing.all_day && format(new Date(existing.starts_at as string), 'HH:mm') !== '00:00'
+          ? format(new Date(existing.starts_at as string), 'HH:mm') : '',
         end_date: existing.ends_at ? format(new Date(existing.ends_at as string), 'yyyy-MM-dd') : '',
-        end_time: existing.ends_at && format(new Date(existing.ends_at as string), 'HH:mm') !== '23:59'
+        end_time: existing.ends_at && !['00:00', '23:59'].includes(format(new Date(existing.ends_at as string), 'HH:mm'))
           ? format(new Date(existing.ends_at as string), 'HH:mm') : '',
         city: (existing.city as string) ?? '',
         venue: (existing.venue as string) ?? '',

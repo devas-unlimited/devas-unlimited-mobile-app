@@ -1,3 +1,4 @@
+import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import type { Announcement, Event } from '@/types/database'
 
@@ -5,6 +6,17 @@ import type { Announcement, Event } from '@/types/database'
 export const EVENT_CATEGORIES = ['Event', 'Retreat'] as const
 export const EVENT_FORMATS = ['In-person', 'Online', 'Hybrid'] as const
 export type EventCategory = typeof EVENT_CATEGORIES[number]
+
+/**
+ * An event is "all day" when the admin set a date but no time.
+ * The flag covers new events; the midnight check covers rows saved before it existed.
+ */
+export function isAllDay(e: Pick<Event, 'all_day' | 'starts_at' | 'ends_at'>): boolean {
+  if (e.all_day) return true
+  if (format(new Date(e.starts_at), 'HH:mm') !== '00:00') return false
+  if (!e.ends_at) return true
+  return ['00:00', '23:59'].includes(format(new Date(e.ends_at), 'HH:mm'))
+}
 
 /** Published events — upcoming first (soonest on top), then past (most recent first) */
 export async function fetchEvents(category?: EventCategory): Promise<Event[]> {

@@ -8,7 +8,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { AppShell } from '@/components/layout/AppShell'
 import { OrgBlobs } from '@/components/ui/OrgBlobs'
 import { fetchDashboardStats, fetchNextEvent, fetchActiveAnnouncements, dismissAnnouncement } from '@/services/dashboard'
-import { fetchFeaturedEvents, fetchPublishedAnnouncements } from '@/services/events'
+import { fetchFeaturedEvents, fetchPublishedAnnouncements, isAllDay } from '@/services/events'
 import { fetchJourneyProgress, type JourneyProgress } from '@/services/journey'
 import { HighlightsCarousel } from './HighlightsCarousel'
 import { InstallBanner } from './InstallBanner'
@@ -276,7 +276,7 @@ function EventHighlight({ event }: { event: Event }) {
       </div>
       <h3 className="text-lg font-bold text-white leading-snug">{event.title}</h3>
       <div className="flex items-center gap-3 text-xs text-white/75 mt-1 flex-wrap">
-        <span>{friendlyDate(event.starts_at, event.all_day)}</span>
+        <span>{friendlyDate(event.starts_at, isAllDay(event))}</span>
         {event.city && <span className="flex items-center gap-1"><MapPin size={11} /> {event.city}</span>}
       </div>
       <span className="mt-3 inline-block px-4 py-2 bg-white/20 border border-white/30 text-white text-xs font-semibold rounded-full">

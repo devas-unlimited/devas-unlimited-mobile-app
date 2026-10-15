@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { MapPin, Sparkles } from 'lucide-react'
 import type { Event, HomeBanner } from '@/types/database'
-import type { PublishedAnnouncement } from '@/services/events'
+import { isAllDay, type PublishedAnnouncement } from '@/services/events'
 import { BannerSlide, type BannerSlideData } from '@/components/banners/BannerSlide'
 
 const AUTOPLAY_MS = 5000
@@ -28,7 +28,7 @@ const fromEvent = (e: Event): Slide => ({
   title: e.title,
   meta: (
     <>
-      <span>{e.all_day ? format(new Date(e.starts_at), 'EEE, d MMM') : format(new Date(e.starts_at), 'EEE, d MMM • h:mm aa')}</span>
+      <span>{isAllDay(e) ? format(new Date(e.starts_at), 'EEE, d MMM') : format(new Date(e.starts_at), 'EEE, d MMM • h:mm aa')}</span>
       {e.city && <span className="flex items-center gap-1"><MapPin size={11} /> {e.city}</span>}
     </>
   ),

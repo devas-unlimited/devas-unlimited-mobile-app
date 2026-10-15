@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format, isPast } from 'date-fns'
-import { MapPin, ChevronRight, Calendar, Megaphone, Mountain, Sparkles } from 'lucide-react'
+import { MapPin, ChevronRight, ChevronDown, Calendar, Megaphone, Mountain, Sparkles } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { CardSkeleton } from '@/components/ui/Skeleton'
 import { AnnouncementCard } from '@/components/announcements/AnnouncementCard'
-import { fetchEvents, fetchPublishedAnnouncements, type EventCategory } from '@/services/events'
+import { fetchEvents, fetchPublishedAnnouncements, isAllDay, type EventCategory } from '@/services/events'
 import type { Event } from '@/types/database'
 
 type Tab = 'All' | 'Events' | 'Retreats' | 'Announcements'
@@ -137,10 +137,12 @@ function SectionHeader({ title, action }: { title: string; action?: { label: str
 }
 
 function EventCard({ event }: { event: Event }) {
+  const [expanded, setExpanded] = useState(false)
   const style = CATEGORY_STYLE[event.category] ?? CATEGORY_STYLE.Event
   const past = isPast(new Date(event.ends_at ?? event.starts_at))
   const open = () => event.registration_url && window.open(event.registration_url, '_blank', 'noopener,noreferrer')
   const clickable = Boolean(event.registration_url)
+  const hasDetails = Boolean(event.description || event.venue || event.address)
 
   return (
     <div
@@ -178,7 +180,7 @@ function EventCard({ event }: { event: Event }) {
           <div className="flex items-center gap-2 text-[#8C7B85] text-xs flex-wrap">
             <span className="flex items-center gap-1">
               <Calendar size={11} />
-              {event.all_day ? format(new Date(event.starts_at), 'd MMM') : format(new Date(event.starts_at), 'd MMM, h:mm aa')}
+              {isAllDay(event) ? format(new Date(event.starts_at), 'd MMM') : format(new Date(event.starts_at), 'd MMM, h:mm aa')}
               {event.ends_at && format(new Date(event.ends_at), 'd MMM') !== format(new Date(event.starts_at), 'd MMM') && ` – ${format(new Date(event.ends_at), 'd MMM')}`}
             </span>
             {event.city && (
@@ -192,6 +194,40 @@ function EventCard({ event }: { event: Event }) {
 
         {clickable && <ChevronRight size={18} className="text-[#C4B5BD] flex-shrink-0 mt-0.5" />}
       </div>
+
+      {hasDetails && (
+        <>
+          <button
+            onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}
+            aria-expanded={expanded}
+            className="mt-3 -mb-0.5 flex items-center gap-1 text-[11px] font-bold tracking-wide uppercase text-[#7C2447]"
+          >
+            {expanded ? 'Hide details' : 'Details'}
+            <ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+          </button>
+          {expanded && (
+            <div className="mt-2.5 pt-3 border-t border-[#F7F0E9]">
+              {event.description && (
+                <p className="text-xs text-[#4A3540] leading-relaxed whitespace-pre-line">{event.description}</p>
+              )}
+              {(event.venue || event.address) && (
+                <p className="mt-2 text-xs text-[#8C7B85] flex items-start gap-1.5">
+                  <MapPin size={12} className="flex-shrink-0 mt-0.5" />
+                  <span>{[event.venue, event.address].filter(Boolean).join(' • ')}</span>
+                </p>
+              )}
+              {event.registration_url && !past && (
+                <button
+                  onClick={e => { e.stopPropagation(); open() }}
+                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[#7C2447] text-white text-xs font-bold rounded-full active:scale-[0.97] transition-transform"
+                >
+                  Register now <ChevronRight size={13} />
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
