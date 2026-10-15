@@ -178,7 +178,7 @@ function EventCard({ event }: { event: Event }) {
           <div className="flex items-center gap-2 text-[#8C7B85] text-xs flex-wrap">
             <span className="flex items-center gap-1">
               <Calendar size={11} />
-              {format(new Date(event.starts_at), 'd MMM, h:mm aa')}
+              {event.all_day ? format(new Date(event.starts_at), 'd MMM') : format(new Date(event.starts_at), 'd MMM, h:mm aa')}
               {event.ends_at && format(new Date(event.ends_at), 'd MMM') !== format(new Date(event.starts_at), 'd MMM') && ` – ${format(new Date(event.ends_at), 'd MMM')}`}
             </span>
             {event.city && (

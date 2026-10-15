@@ -28,7 +28,7 @@ const fromEvent = (e: Event): Slide => ({
   title: e.title,
   meta: (
     <>
-      <span>{format(new Date(e.starts_at), 'EEE, d MMM • h:mm aa')}</span>
+      <span>{e.all_day ? format(new Date(e.starts_at), 'EEE, d MMM') : format(new Date(e.starts_at), 'EEE, d MMM • h:mm aa')}</span>
       {e.city && <span className="flex items-center gap-1"><MapPin size={11} /> {e.city}</span>}
     </>
   ),

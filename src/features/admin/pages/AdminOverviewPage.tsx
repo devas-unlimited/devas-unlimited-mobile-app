@@ -28,11 +28,11 @@ async function fetchOverviewStats() {
 
 async function fetchUpcomingEvents() {
   const { data } = await (supabase.from('events') as any)
-    .select('id, title, category, starts_at, status, is_published, is_featured')
+    .select('id, title, category, starts_at, all_day, status, is_published, is_featured')
     .gte('starts_at', new Date().toISOString())
     .order('starts_at', { ascending: true })
     .limit(5)
-  return (data ?? []) as { id: string; title: string; category: string; starts_at: string; status: string; is_published: boolean; is_featured: boolean }[]
+  return (data ?? []) as { id: string; title: string; category: string; starts_at: string; all_day: boolean; status: string; is_published: boolean; is_featured: boolean }[]
 }
 
 async function fetchDraftContent() {
@@ -147,7 +147,7 @@ export function AdminOverviewPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[#321B26] truncate">{ev.title}</p>
-                      <p className="text-xs text-[#8C7B85]">{format(new Date(ev.starts_at), 'dd MMM yyyy • HH:mm')}</p>
+                      <p className="text-xs text-[#8C7B85]">{ev.all_day ? format(new Date(ev.starts_at), 'dd MMM yyyy') : format(new Date(ev.starts_at), 'dd MMM yyyy • HH:mm')}</p>
                     </div>
                     <StatusBadge status={ev.status} size="sm" />
                   </button>

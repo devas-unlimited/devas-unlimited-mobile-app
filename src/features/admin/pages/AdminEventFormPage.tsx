@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Save, Globe } from 'lucide-react'
+import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { AdminShell } from '../layout/AdminShell'
 import { AdminInput, AdminSelect, AdminTextarea, AdminToggle } from '../components/AdminFormField'
@@ -22,8 +23,10 @@ const schema = z.object({
   category: z.enum(EVENT_CATEGORIES, { message: 'Type is required' }),
   format: z.enum(EVENT_FORMATS, { message: 'Format is required' }),
   status: z.enum(['draft', 'scheduled', 'published', 'archived', 'cancelled']),
-  starts_at: z.string().min(1, 'Start date is required'),
-  ends_at: z.string().default(''),
+  start_date: z.string().min(1, 'Start date is required'),
+  start_time: z.string().default(''),
+  end_date: z.string().default(''),
+  end_time: z.string().default(''),
   city: z.string().default(''),
   venue: z.string().default(''),
   address: z.string().default(''),
@@ -31,13 +34,13 @@ const schema = z.object({
   registration_url: z.string().default(''),
   description: z.string().default(''),
   facilitator_name: z.string().default(''),
-  capacity: z.number().int().positive().nullable().default(null),
-  price: z.number().min(0).nullable().default(null),
-  currency: z.string().default('INR'),
   cover_image_url: z.string().default(''),
   is_featured: z.boolean().default(false),
   is_published: z.boolean().default(false),
   registration_open: z.boolean().default(true),
+}).refine(d => !d.end_date || d.end_date >= d.start_date, {
+  message: 'End date must be on or after the start date',
+  path: ['end_date'],
 })
 
 type FormData = z.infer<typeof schema>
@@ -75,7 +78,6 @@ export function AdminEventFormPage() {
       category: 'Event',
       format: 'In-person',
       status: 'draft',
-      currency: 'INR',
       is_featured: false,
       is_published: false,
       registration_open: true,
@@ -90,8 +92,11 @@ export function AdminEventFormPage() {
         category: (existing.category as FormData['category']) ?? 'Event',
         format: (existing.format as FormData['format']) ?? 'In-person',
         status: (existing.status as FormData['status']) ?? 'draft',
-        starts_at: existing.starts_at ? (existing.starts_at as string).slice(0, 16) : '',
-        ends_at: existing.ends_at ? (existing.ends_at as string).slice(0, 16) : '',
+        start_date: existing.starts_at ? format(new Date(existing.starts_at as string), 'yyyy-MM-dd') : '',
+        start_time: existing.starts_at && !existing.all_day ? format(new Date(existing.starts_at as string), 'HH:mm') : '',
+        end_date: existing.ends_at ? format(new Date(existing.ends_at as string), 'yyyy-MM-dd') : '',
+        end_time: existing.ends_at && format(new Date(existing.ends_at as string), 'HH:mm') !== '23:59'
+          ? format(new Date(existing.ends_at as string), 'HH:mm') : '',
         city: (existing.city as string) ?? '',
         venue: (existing.venue as string) ?? '',
         address: (existing.address as string) ?? '',
@@ -99,9 +104,6 @@ export function AdminEventFormPage() {
         registration_url: (existing.registration_url as string) ?? '',
         description: (existing.description as string) ?? '',
         facilitator_name: (existing.facilitator_name as string) ?? '',
-        capacity: existing.capacity as number | null ?? null,
-        price: existing.price as number | null ?? null,
-        currency: (existing.currency as string) ?? 'INR',
         cover_image_url: (existing.cover_image_url as string) ?? '',
         is_featured: Boolean(existing.is_featured),
         is_published: Boolean(existing.is_published),
@@ -117,10 +119,21 @@ export function AdminEventFormPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
+      // A start date without a time is an all-day event; it stays live until end of day
+      const allDay = !data.start_time
+      const startsAt = new Date(`${data.start_date}T${data.start_time || '00:00'}`)
+      const endsAt = data.end_date
+        ? new Date(`${data.end_date}T${data.end_time || '23:59'}`)
+        : allDay ? new Date(`${data.start_date}T23:59`) : null
+
+      const { start_date: _sd, start_time: _st, end_date: _ed, end_time: _et, ...fields } = data
       const payload = {
-        ...data,
-        starts_at: new Date(data.starts_at).toISOString(),
-        ends_at: data.ends_at ? new Date(data.ends_at).toISOString() : null,
+        ...fields,
+        capacity: null,
+        price: null,
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt ? endsAt.toISOString() : null,
+        all_day: allDay,
         cover_image_url: data.cover_image_url || null,
         is_published: data.status === 'published',
         published_at: data.status === 'published' ? new Date().toISOString() : null,
@@ -198,9 +211,12 @@ export function AdminEventFormPage() {
 
               <Section title="Date & time">
                 <div className="grid grid-cols-2 gap-4">
-                  <AdminInput label="Starts at" type="datetime-local" required {...register('starts_at')} error={errors.starts_at?.message} />
-                  <AdminInput label="Ends at" type="datetime-local" {...register('ends_at')} error={errors.ends_at?.message} />
+                  <AdminInput label="Start date" type="date" required {...register('start_date')} error={errors.start_date?.message} />
+                  <AdminInput label="Start time" type="time" hint="optional" {...register('start_time')} error={errors.start_time?.message} />
+                  <AdminInput label="End date" type="date" hint="for multi-day" {...register('end_date')} error={errors.end_date?.message} />
+                  <AdminInput label="End time" type="time" hint="optional" {...register('end_time')} error={errors.end_time?.message} />
                 </div>
+                <p className="text-xs text-[#8C7B85] -mt-1">Leave the time blank to show just the date, with no clock time.</p>
               </Section>
 
               <Section title="Location">
@@ -214,15 +230,6 @@ export function AdminEventFormPage() {
 
               <Section title="Registration">
                 <AdminInput label="Registration URL" type="url" placeholder="https://…" {...register('registration_url')} error={errors.registration_url?.message} />
-                <div className="grid grid-cols-2 gap-4">
-                  <AdminInput label="Capacity" type="number" placeholder="Unlimited" {...register('capacity', { valueAsNumber: true })} error={errors.capacity?.message} />
-                  <div className="grid grid-cols-2 gap-2">
-                    <AdminInput label="Price" type="number" step="0.01" placeholder="0.00" {...register('price', { valueAsNumber: true })} error={errors.price?.message} />
-                    <AdminSelect label="Currency" {...register('currency')} error={errors.currency?.message}>
-                      {['INR', 'USD', 'EUR', 'GBP'].map(c => <option key={c} value={c}>{c}</option>)}
-                    </AdminSelect>
-                  </div>
-                </div>
               </Section>
 
               <Section title="Media">

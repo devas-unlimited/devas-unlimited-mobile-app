@@ -53,6 +53,7 @@ export interface Database {
           venue: string | null
           starts_at: string
           ends_at: string | null
+          all_day: boolean
           registration_url: string | null
           cover_image_url: string | null
           is_featured: boolean
@@ -71,6 +72,7 @@ export interface Database {
           venue?: string | null
           starts_at: string
           ends_at?: string | null
+          all_day?: boolean
           registration_url?: string | null
           cover_image_url?: string | null
           is_featured?: boolean
