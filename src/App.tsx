@@ -16,6 +16,7 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { SignUpPage } from '@/features/auth/SignUpPage'
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { AuthCallback } from '@/features/auth/AuthCallback'
+import { LegalPage } from '@/features/legal/LegalPage'
 
 // App screens — lazy for code splitting
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })))
@@ -75,6 +76,8 @@ function App() {
                   <Route path="/signup" element={<GuestRoute><SignUpPage /></GuestRoute>} />
                   <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+                  <Route path="/terms" element={<LegalPage kind="terms" />} />
 
                   {/* Protected */}
                   <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
